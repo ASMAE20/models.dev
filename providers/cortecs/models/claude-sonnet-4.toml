@@ -3,22 +3,25 @@ description = "Balanced Claude model for coding, analysis, agent workflows, and 
 family = "claude-sonnet"
 release_date = "2025-05-22"
 last_updated = "2025-05-22"
-knowledge = "2025-03"
-attachment = false
-reasoning = false
-tool_call = true
+attachment = true
+reasoning = true
 temperature = true
+tool_call = true
+structured_output = true
+knowledge = "2025-03"
 open_weights = false
-
+reasoning_options = []
 
 [cost]
-input = 3.307
-output = 16.536
+input = 2.898
+output = 14.493
+cache_read = 0.29
+cache_write = 3.624
 
 [limit]
 context = 200_000
 output = 64_000
 
 [modalities]
-input = ["text", "image", "pdf"]
+input = ["text", "image"]
 output = ["text"]

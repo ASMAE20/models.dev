@@ -1,0 +1,24 @@
+name = "magistral-medium-2509"
+description = "Magistral Medium 2509 is a frontier-class reasoning model with vision support, delivering transparent, multilingual reasoning and a 15% performance boost over its predecessor."
+release_date = "2025-09-18"
+last_updated = "2025-09-18"
+attachment = true
+reasoning = true
+temperature = false
+tool_call = true
+structured_output = true
+open_weights = false
+reasoning_options = []
+
+[cost]
+input = 2.228
+output = 5.57
+cache_read = 0.223
+
+[limit]
+context = 128_000
+output = 128_000
+
+[modalities]
+input = ["text", "image"]
+output = ["text"]

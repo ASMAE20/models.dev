@@ -1,0 +1,12 @@
+base_model = "openai/gpt-4.1-nano"
+reasoning = true
+structured_output = false
+reasoning_options = []
+
+[cost]
+input = 0.111
+output = 0.434
+cache_read = 0.056
+
+[limit]
+output = 1_047_576

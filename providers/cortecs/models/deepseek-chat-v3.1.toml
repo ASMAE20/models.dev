@@ -1,0 +1,24 @@
+name = "deepseek-chat-v3.1"
+description = "DeepSeek-V3.1 is a large hybrid reasoning model supporting both thinking and non-thinking modes, optimized for fast reasoning, tool use, and agentic workflows."
+release_date = "2026-03-26"
+last_updated = "2026-03-26"
+attachment = false
+reasoning = true
+temperature = false
+tool_call = true
+structured_output = true
+open_weights = false
+reasoning_options = []
+
+[cost]
+input = 0.197
+output = 0.791
+cache_read = 0.049
+
+[limit]
+context = 164_000
+output = 164_000
+
+[modalities]
+input = ["text"]
+output = ["text"]

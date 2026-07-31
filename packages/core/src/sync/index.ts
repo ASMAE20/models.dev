@@ -30,6 +30,7 @@ import { vercel } from "./providers/vercel.js";
 import { venice } from "./providers/venice.js";
 import { wandb } from "./providers/wandb.js";
 import { xai } from "./providers/xai.js";
+import { cortecs } from "./providers/cortecs.js";
 
 const ExistingModelType = AuthoredModelShape.partial()
   .extend({
@@ -134,6 +135,7 @@ export const providers: {
   venice: SyncProvider<any>;
   wandb: SyncProvider<any>;
   xai: SyncProvider<any>;
+  cortecs: SyncProvider<any>;
 } = {
   ambient,
   anthropic,
@@ -160,6 +162,7 @@ export const providers: {
   venice,
   wandb,
   xai,
+  cortecs,
 };
 
 export const groups = {
@@ -175,7 +178,7 @@ export const groups = {
     "vercel",
   ],
   cloudflare: ["cloudflare-workers-ai"],
-  direct: ["ambient", "anthropic", "baseten", "chutes", "deepinfra", "digitalocean", "google", "hyper", "openai", "ovhcloud", "pioneer", "tinfoil", "venice", "wandb", "xai"],
+  direct: ["ambient", "anthropic", "baseten", "chutes", "deepinfra", "digitalocean", "google", "hyper", "openai", "ovhcloud", "pioneer", "tinfoil", "venice", "wandb", "xai", "cortecs"],
 } as const;
 
 type ProviderID = keyof typeof providers;
