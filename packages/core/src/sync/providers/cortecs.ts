@@ -5,6 +5,9 @@ import type { ExistingModel, SyncProvider, SyncedFullModel, SyncedModel } from "
 import { factorBaseModel, resolveModelMetadataBaseModel } from "./openrouter.js";
 
 const API_ENDPOINT = "https://api.cortecs.ai/v1/models";
+const CANONICAL_BASE_MODEL_EXCEPTIONS = {
+  "claude-sonnet-4": "anthropic/claude-sonnet-4-0",
+} as const;
 // Cortecs publishes its default catalog prices in EUR per million tokens.
 // Exchange rate used by the existing Cortecs entries, as of 2026-07-30.
 const EUR_TO_USD = 1.114;
@@ -51,7 +54,10 @@ export const cortecs = {
     return CortecsResponse.parse(raw).data;
   },
   translateModel(model, context) {
-    return { id: model.id, model: buildCortecsModel(model, context.existing(model.id)) };
+    return {
+      id: model.id,
+      model: buildCortecsModel(model, context.existing(model.id), context.authored(model.id)),
+    };
   },
 } satisfies SyncProvider<CortecsModel>;
 
@@ -64,15 +70,24 @@ function usd(value: number | undefined) {
   return Math.round(value * EUR_TO_USD * 1_000) / 1_000;
 }
 
-export function buildCortecsModel(model: CortecsModel, existing: ExistingModel | undefined): SyncedModel {
+export function buildCortecsModel(
+  model: CortecsModel,
+  existing: ExistingModel | undefined,
+  authored: ExistingModel | undefined,
+): SyncedModel {
   const features = new Set(model.supported_features);
   const input = model.input_modalities;
   const output = model.output_modalities;
-  const reasoning = features.has("reasoning");
+  const canonical = existing?.base_model ?? resolveCortecsBaseModel(model.id);
+  const sourceReasoning = features.has("reasoning");
+  const reasoning = canonical === undefined ? sourceReasoning : existing?.reasoning ?? sourceReasoning;
+  const reasoningOptions = canonical === undefined
+    ? (sourceReasoning ? existing?.reasoning_options ?? [] : undefined)
+    : (existing?.reasoning === true ? existing.reasoning_options : undefined);
   const limit = {
     context: model.context_size,
     input: existing?.limit?.input,
-    output: existing?.limit?.output ?? model.context_size,
+    output: authored?.limit?.output,
   };
   const cost = {
     input: usd(model.pricing.input_token),
@@ -82,14 +97,12 @@ export function buildCortecsModel(model: CortecsModel, existing: ExistingModel |
     reasoning: existing?.cost?.reasoning,
     tiers: existing?.cost?.tiers,
   };
-  const canonical = existing?.base_model ?? resolveModelMetadataBaseModel(model.id);
-
   if (canonical !== undefined) {
     return factorBaseModel(canonical, {
       description: existing?.description,
       attachment: input.some((value) => value !== "text"),
-      reasoning,
-      reasoning_options: reasoning ? existing?.reasoning_options ?? [] : undefined,
+      reasoning: undefined,
+      reasoning_options: reasoningOptions,
       temperature: existing?.temperature,
       tool_call: features.has("tools"),
       structured_output: features.has("json_mode"),
@@ -120,7 +133,7 @@ export function buildCortecsModel(model: CortecsModel, existing: ExistingModel |
     last_updated: existing?.last_updated ?? dateFromTimestamp(model.created),
     attachment: input.some((value) => value !== "text"),
     reasoning,
-    reasoning_options: reasoning ? existing?.reasoning_options ?? [] : undefined,
+    reasoning_options: reasoningOptions,
     temperature: existing?.temperature ?? false,
     tool_call: features.has("tools"),
     structured_output: features.has("json_mode"),
@@ -132,4 +145,25 @@ export function buildCortecsModel(model: CortecsModel, existing: ExistingModel |
     limit,
     modalities: { input, output },
   } satisfies SyncedFullModel;
+}
+
+function resolveCortecsBaseModel(modelID: string) {
+  const exception = CANONICAL_BASE_MODEL_EXCEPTIONS[
+    modelID as keyof typeof CANONICAL_BASE_MODEL_EXCEPTIONS
+  ];
+  if (exception !== undefined) return resolveModelMetadataBaseModel(exception);
+
+  const trailingFamily = /^claude-(\d+)-(\d+)-(opus|sonnet|haiku)$/.exec(modelID);
+  if (trailingFamily !== null) {
+    const [, major, minor, family] = trailingFamily;
+    return resolveModelMetadataBaseModel(`anthropic/claude-${family}-${major}-${minor}`);
+  }
+
+  const compactFamily = /^claude-(opus|sonnet|haiku)(\d+)-(\d+)$/.exec(modelID);
+  if (compactFamily !== null) {
+    const [, family, major, minor] = compactFamily;
+    return resolveModelMetadataBaseModel(`anthropic/claude-${family}-${major}-${minor}`);
+  }
+
+  return resolveModelMetadataBaseModel(modelID);
 }

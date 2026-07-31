@@ -1,7 +1,5 @@
 base_model = "openai/gpt-4.1-nano"
-reasoning = true
 structured_output = false
-reasoning_options = []
 
 [cost]
 input = 0.111

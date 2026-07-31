@@ -5,6 +5,10 @@ structured_output = true
 type = "effort"
 values = ["low", "medium", "high"]
 
+[[reasoning_options]]
+type = "budget_tokens"
+min = 1_024
+
 [cost]
 input = 5.437
 output = 27.186
