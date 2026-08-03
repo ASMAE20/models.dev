@@ -1,8 +1,0 @@
-base_model = "nvidia/nemotron-3-super-120b-a12b"
-structured_output = true
-reasoning_options = []
-
-[cost]
-input = 0.296
-output = 0.89
-cache_read = 0.075
