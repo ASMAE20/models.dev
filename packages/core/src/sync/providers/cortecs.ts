@@ -87,7 +87,7 @@ export function buildCortecsModel(
   const limit = {
     context: model.context_size,
     input: existing?.limit?.input,
-    output: authored?.limit?.output,
+    output: authored?.limit?.output ?? model.context_size,
   };
   const cost = {
     input: usd(model.pricing.input_token),
