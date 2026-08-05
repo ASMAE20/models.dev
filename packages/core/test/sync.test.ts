@@ -10,6 +10,11 @@ import {
   parseAnthropicPricing,
   type AnthropicModel,
 } from "../src/sync/providers/anthropic.js";
+import {
+  buildCrossModel,
+  type CrossModelModel,
+} from "../src/sync/providers/crossmodel.js";
+import { buildCortecsModel, type CortecsModel } from "../src/sync/providers/cortecs.js";
 import { buildDeepInfraModel, type DeepInfraModel } from "../src/sync/providers/deepinfra.js";
 import {
   buildDigitalOceanModel,
@@ -113,6 +118,63 @@ function nanoGptModel(overrides: Partial<NanoGptModel> = {}): NanoGptModel {
     ...overrides,
   };
 }
+
+function crossModelModel(overrides: Partial<CrossModelModel> = {}): CrossModelModel {
+  return {
+    id: "qwen/qwen3.8-max",
+    vendor_code: "qwen",
+    display_name: "Qwen3.8 Max",
+    context_window_tokens: 1_000_000,
+    max_output_tokens: 131_072,
+    modalities: { input: ["text", "image", "video"], output: ["text"] },
+    capabilities: {
+      json: true,
+      reasoning: { toggle: true },
+    },
+    currency: "USD",
+    pricing: {
+      tiers: [
+        {
+          threshold: 0,
+          input_micro_per_1m: 1_880_000,
+          output_micro_per_1m: 5_630_000,
+        },
+      ],
+    },
+    ...overrides,
+  };
+}
+
+test("syncs CrossModel's structured-output capability", () => {
+  const supported = buildCrossModel(crossModelModel(), undefined);
+  const unsupported = buildCrossModel(
+    crossModelModel({
+      id: "qwen/qwen3.7-flash",
+      capabilities: { json: false, reasoning: { toggle: true } },
+    }),
+    undefined,
+  );
+  const preserved = buildCrossModel(
+    crossModelModel({ capabilities: { reasoning: { toggle: true } } }),
+    {
+      base_model: "alibaba/qwen3.8-max",
+      structured_output: true,
+    },
+  );
+
+  expect(supported).toMatchObject({
+    base_model: "alibaba/qwen3.8-max",
+    structured_output: true,
+  });
+  expect(unsupported).toMatchObject({
+    base_model: "alibaba/qwen3.7-flash",
+    structured_output: false,
+  });
+  expect(preserved).toMatchObject({
+    base_model: "alibaba/qwen3.8-max",
+    structured_output: true,
+  });
+});
 
 test("syncs NanoGPT's verified reasoning, pricing, limits, and open-weight metadata", () => {
   const model = buildNanoGptModel(nanoGptModel({
@@ -1802,9 +1864,9 @@ test("syncs Hyper pricing from catalog input/output fields", () => {
 
   expect(buildHyperModel(model, undefined, "minimax/MiniMax-M2.7")).toMatchObject({
     cost: { input: 0.3, output: 1.2, cache_read: 0.06, cache_write: 0.03 },
-    reasoning: false,
+    reasoning_options: [],
   });
-  expect(buildHyperModel(model, undefined, "minimax/MiniMax-M2.7")).not.toHaveProperty("reasoning_options");
+  expect(buildHyperModel(model, undefined, "minimax/MiniMax-M2.7")).not.toHaveProperty("reasoning");
 });
 
 test("rounds Hyper pricing to six decimal places", () => {
@@ -1822,7 +1884,7 @@ test("rounds Hyper pricing to six decimal places", () => {
   });
 });
 
-test("sets Hyper reasoning false when API omits reasoning metadata", () => {
+test("inherits Hyper reasoning when API omits reasoning metadata", () => {
   const model = hyperModel({ id: "llama-3.3-70b-instruct", reasoning: undefined });
 
   expect(buildHyperModel(model, undefined, "meta/llama-3.3-70b-instruct")).toMatchObject({
@@ -1832,8 +1894,9 @@ test("sets Hyper reasoning false when API omits reasoning metadata", () => {
   expect(buildHyperModel(model, undefined, "meta/llama-3.3-70b-instruct")).not.toHaveProperty("reasoning_options");
 
   expect(buildHyperModel(hyperModel({ id: "minimax-m2.7", reasoning: undefined }), undefined, "minimax/MiniMax-M2.7")).toMatchObject({
-    reasoning: false,
+    reasoning_options: [],
   });
+  expect(buildHyperModel(hyperModel({ id: "minimax-m2.7", reasoning: undefined }), undefined, "minimax/MiniMax-M2.7")).not.toHaveProperty("reasoning");
 });
 
 test("preserves existing Hyper cost when API pricing is missing", () => {
@@ -1850,8 +1913,8 @@ test("preserves existing Hyper cost when API pricing is missing", () => {
 
 test("creates a full Hyper model when no base_model metadata exists", () => {
   const model = hyperModel({
-    id: "qwen3.7-flash",
-    display_name: "Qwen3.7-Flash",
+    id: "custom-coder",
+    display_name: "Custom Coder",
     reasoning: undefined,
     capabilities: { vision: true },
     pricing: {
@@ -1863,7 +1926,7 @@ test("creates a full Hyper model when no base_model metadata exists", () => {
   });
 
   expect(buildHyperModel(model, undefined)).toMatchObject({
-    name: "Qwen3.7-Flash",
+    name: "Custom Coder",
     attachment: true,
     reasoning: false,
     tool_call: true,
@@ -1879,7 +1942,7 @@ test("creates a full Hyper model when no base_model metadata exists", () => {
 test("factors new Hyper models against unique models/ metadata", () => {
   expect(buildHyperModel(hyperModel({ id: "kimi-k3", reasoning: undefined }), undefined)).toMatchObject({
     base_model: "moonshotai/kimi-k3",
-    reasoning: false,
+    reasoning_options: [],
   });
 });
 
@@ -2073,6 +2136,27 @@ test("defaults new reasoning models to empty reasoning options", () => {
   expect(preserveReasoningOptions({ reasoning: true }, undefined)).toEqual({
     reasoning: true,
     reasoning_options: [],
+  });
+});
+
+test("preserves authored Cortecs reasoning options missing from the API", () => {
+  const model: CortecsModel = {
+    id: "deepseek-v4-flash-0731",
+    created: 1_775_088_000,
+    pricing: { currency: "EUR", input_token: 0.224, output_token: 0.269 },
+    context_size: 1_048_576,
+    input_modalities: ["text"],
+    output_modalities: ["text"],
+    supported_features: ["reasoning", "tools"],
+  };
+  const existing: ExistingModel = {
+    base_model: "deepseek/deepseek-v4-flash-0731",
+    reasoning: true,
+    reasoning_options: [{ type: "effort", values: ["low", "medium", "high"] }],
+  };
+
+  expect(buildCortecsModel(model, existing, existing)).toMatchObject({
+    reasoning_options: [{ type: "effort", values: ["low", "medium", "high"] }],
   });
 });
 
@@ -2495,6 +2579,69 @@ test("derives a Merge Gateway reasoning toggle when the selected route supports 
   });
 
   expect(model).toMatchObject({ reasoning_options: [{ type: "toggle" }] });
+});
+
+// Effort control yields toggle + effort, not a bare toggle (claude-opus-5 regression).
+test("derives Merge Gateway toggle + effort from an effort control", () => {
+  const selected = mergeGatewayVendor({
+    pricing: { currency: "USD", input_per_million: 5, output_per_million: 25 },
+  });
+  selected.capabilities.reasoning = {
+    configurable: true,
+    disable_supported: true,
+    default_enabled: true,
+    controls: ["reasoning.effort"],
+    effort_values: ["low", "medium", "high", "xhigh", "max"],
+    output_style: "hidden",
+  };
+  const model = buildMergeGatewayModel(mergeGatewayModel({
+    model: "anthropic/claude-opus-5",
+    provider: "anthropic",
+    display_name: "Claude Opus 5",
+    vendors: { anthropic: selected },
+  }), {
+    base_model: "anthropic/claude-opus-5",
+    reasoning: true,
+    reasoning_options: [],
+    cost: { input: 5, output: 25 },
+  });
+
+  expect(model).toMatchObject({
+    reasoning_options: [
+      { type: "toggle" },
+      { type: "effort", values: ["low", "medium", "high", "xhigh", "max"] },
+    ],
+  });
+});
+
+// Effort control without disable support yields effort only.
+test("derives Merge Gateway effort without a toggle when disable is unsupported", () => {
+  const selected = mergeGatewayVendor({
+    pricing: { currency: "USD", input_per_million: 5, output_per_million: 25 },
+  });
+  selected.capabilities.reasoning = {
+    configurable: true,
+    disable_supported: false,
+    default_enabled: true,
+    controls: ["reasoning.effort"],
+    effort_values: ["low", "medium", "high", "xhigh", "max"],
+    output_style: "hidden",
+  };
+  const model = buildMergeGatewayModel(mergeGatewayModel({
+    model: "anthropic/claude-sonnet-5",
+    provider: "anthropic",
+    display_name: "Claude Sonnet 5",
+    vendors: { anthropic: selected },
+  }), {
+    base_model: "anthropic/claude-sonnet-5",
+    reasoning: true,
+    reasoning_options: [],
+    cost: { input: 3, output: 15 },
+  });
+
+  expect(model).toMatchObject({
+    reasoning_options: [{ type: "effort", values: ["low", "medium", "high", "xhigh", "max"] }],
+  });
 });
 
 // Prevents deprecated routes from contributing capabilities to an available model.
