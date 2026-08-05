@@ -8,3 +8,4 @@ cache_read = 0.062
 
 [limit]
 context = 1_048_576
+output = 1_048_576

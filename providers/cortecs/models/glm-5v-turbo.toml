@@ -10,6 +10,7 @@ cache_write = 1.544
 
 [limit]
 context = 202_752
+output = 202_752
 
 [modalities]
 input = ["text", "image"]
