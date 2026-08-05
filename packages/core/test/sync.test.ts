@@ -10,11 +10,11 @@ import {
   parseAnthropicPricing,
   type AnthropicModel,
 } from "../src/sync/providers/anthropic.js";
+import { buildCortecsModel, type CortecsModel } from "../src/sync/providers/cortecs.js";
 import {
   buildCrossModel,
   type CrossModelModel,
 } from "../src/sync/providers/crossmodel.js";
-import { buildCortecsModel, type CortecsModel } from "../src/sync/providers/cortecs.js";
 import { buildDeepInfraModel, type DeepInfraModel } from "../src/sync/providers/deepinfra.js";
 import {
   buildDigitalOceanModel,

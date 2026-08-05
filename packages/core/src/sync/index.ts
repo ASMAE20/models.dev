@@ -10,6 +10,7 @@ import { anthropic } from "./providers/anthropic.js";
 import { baseten } from "./providers/baseten.js";
 import { chutes } from "./providers/chutes.js";
 import { cloudflareWorkersAi } from "./providers/cloudflare-workers-ai.js";
+import { cortecs } from "./providers/cortecs.js";
 import { crossmodel } from "./providers/crossmodel.js";
 import { deepinfra } from "./providers/deepinfra.js";
 import { digitalocean } from "./providers/digitalocean.js";
@@ -32,7 +33,6 @@ import { vercel } from "./providers/vercel.js";
 import { venice } from "./providers/venice.js";
 import { wandb } from "./providers/wandb.js";
 import { xai } from "./providers/xai.js";
-import { cortecs } from "./providers/cortecs.js";
 
 const ExistingModelType = AuthoredModelShape.partial()
   .extend({
@@ -117,6 +117,7 @@ export const providers: {
   baseten: SyncProvider<any>;
   chutes: SyncProvider<any>;
   "cloudflare-workers-ai": SyncProvider<any>;
+  cortecs: SyncProvider<any>;
   crossmodel: SyncProvider<any>;
   deepinfra: SyncProvider<any>;
   digitalocean: SyncProvider<any>;
@@ -139,13 +140,13 @@ export const providers: {
   venice: SyncProvider<any>;
   wandb: SyncProvider<any>;
   xai: SyncProvider<any>;
-  cortecs: SyncProvider<any>;
 } = {
   ambient,
   anthropic,
   baseten,
   chutes,
   "cloudflare-workers-ai": cloudflareWorkersAi,
+  cortecs,
   crossmodel,
   deepinfra,
   digitalocean,
@@ -168,7 +169,6 @@ export const providers: {
   venice,
   wandb,
   xai,
-  cortecs,
 };
 
 export const groups = {
@@ -186,7 +186,7 @@ export const groups = {
     "vercel",
   ],
   cloudflare: ["cloudflare-workers-ai"],
-  direct: ["ambient", "anthropic", "baseten", "chutes", "deepinfra", "digitalocean", "google", "hyper", "openai", "ovhcloud", "pioneer", "tinfoil", "venice", "wandb", "xai", "cortecs"],
+  direct: ["ambient", "anthropic", "baseten", "chutes", "cortecs", "deepinfra", "digitalocean", "google", "hyper", "openai", "ovhcloud", "pioneer", "tinfoil", "venice", "wandb", "xai"],
 } as const;
 
 type ProviderID = keyof typeof providers;
