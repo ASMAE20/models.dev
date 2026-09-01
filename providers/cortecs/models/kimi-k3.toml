@@ -4,6 +4,9 @@ base_model = "moonshotai/kimi-k3"
 type = "effort"
 values = ["low", "high", "max"]
 
+[interleaved]
+field = "reasoning_content"
+
 [cost]
 input = 3
 output = 14.999
